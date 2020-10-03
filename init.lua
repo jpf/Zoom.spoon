@@ -146,6 +146,11 @@ function obj:unmute()
   end
 end
 
+function obj:inMeeting()
+  return zoomState:is('meeting') or zoomState:is('sharing')
+end
+
+
 function obj:setStatusCallback(func)
   self.callbackFunction = func
 end
