@@ -1,3 +1,10 @@
+--[[
+
+ Known issues:
+ - Mute is not detected properly during a Zoom Webinar
+
+]]
+
 local obj = {}
 obj.__index = obj
 
@@ -48,6 +55,7 @@ zoomState = machine.create({
 })
 
 local endMeetingDebouncer = hs.timer.delayed.new(0.2, function()
+  -- Only end the meeting if the "Meeting" menu is no longer present
   if not _check({"Meeting", "Invite"}) then
     zoomState:endMeeting()
   end
@@ -66,8 +74,12 @@ appWatcher = hs.application.watcher.new(function (appName, eventType, appObject)
 
       if(eventName == "AXTitleChanged" and windowTitle == "Zoom Meeting") then
         zoomState:startMeeting()
+      elseif(eventName == "AXTitleChanged" and windowTitle == "Zoom Webinar") then
+        zoomState:startMeeting()
       elseif(eventName == "AXWindowCreated" and windowTitle == "Zoom Meeting") then
         zoomState:endShare()
+      elseif(eventName == "AXWindowCreated" and windowTitle == "Zoom Webinar") then
+        zoomState:startMeeting()
       elseif(eventName == "AXWindowCreated" and windowTitle == "Zoom") then
         zoomState:start()
       elseif(eventName == "AXWindowCreated" and windowTitle:sub(1, #"zoom share") == "zoom share") then
@@ -80,7 +92,7 @@ appWatcher = hs.application.watcher.new(function (appName, eventType, appObject)
   elseif (eventType == hs.application.watcher.terminated) then
     if (watcher ~= nil) then
       watcher:stop()
-      if zoomState:is('meeting') then zoomState:endMeeting() end
+      if zoomState:is('meeting') then endMeetingDebouncer:start() end
       zoomState:stop()
       watcher = nil
     end
