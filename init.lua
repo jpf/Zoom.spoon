@@ -1,7 +1,8 @@
 --[[
 
  Known issues:
- - Mute is not detected properly during a Zoom Webinar
+ * Mute is not detected properly during a Zoom Webinar
+ * toggleMute() will stop working if the user changes state via the Zoom client
 
 ]]
 
@@ -13,6 +14,7 @@ obj.name = "Unofficial Zoom Spoon"
 obj.version = "1.0"
 obj.author = "Joel Franusic"
 obj.license = "MIT"
+obj.homepage = "https://github.com/jpf/Zoom.spoon"
 
 obj.callbackFunction = nil
 
@@ -103,6 +105,10 @@ function obj:start()
   appWatcher:start()
 end
 
+function obj:stop()
+  appWatcher:stop()
+end
+
 function _check(tbl)
   local check = hs.application.get("zoom.us")
   if (check ~= nil) then
@@ -133,7 +139,11 @@ function obj:getAudioStatus()
   end
 end
 
+--- Zoom:toggleMute()
+--- Method
+--- Toggles between the 'muted' and 'unmuted states'
 function obj:toggleMute()
+  -- FIXME: Check if reported status differs from expected status, then fix
   if audioStatus == 'muted' then
     self:unmute()
   end
@@ -144,6 +154,9 @@ function obj:toggleMute()
   end
 end
 
+--- Zoom:mute()
+--- Method
+--- Mutes the audio in Zoom, if Zoom is currently unmuted
 function obj:mute()
   if audioStatus == 'unmuted' and self:_click({"Meeting", "Mute Audio"}) then
     audioStatus = 'muted'
@@ -151,6 +164,9 @@ function obj:mute()
   end
 end
 
+--- Zoom:unmute()
+--- Method
+--- Unmutes the audio in Zoom, if Zoom is currently muted
 function obj:unmute()
   if audioStatus == 'muted' and self:_click({"Meeting", "Unmute Audio"}) then
     audioStatus = 'unmuted'
@@ -163,6 +179,12 @@ function obj:inMeeting()
 end
 
 
+--- Zoom:setStatusCallback(func)
+--- Method
+--- Registers a function to be called whenever Zoom's state changes
+---
+--- Parameters:
+--- * func - A function in the form "function(event)" where "event" is a string describing the state change event
 function obj:setStatusCallback(func)
   self.callbackFunction = func
 end
