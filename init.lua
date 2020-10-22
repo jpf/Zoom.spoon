@@ -158,7 +158,6 @@ end
 --- Method
 --- Mutes the audio in Zoom, if Zoom is currently unmuted
 function obj:mute()
-  print(audioStatus)
   if obj:getAudioStatus() == 'unmuted' and self:_click({"Meeting", "Mute Audio"}) then
     audioStatus = 'muted'
     self:_change("muted")
