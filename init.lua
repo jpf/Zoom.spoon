@@ -44,7 +44,6 @@ zoomState = machine.create({
   callbacks = {
     onstatechange = function(self, event, from, to)
       changeName = "from-" .. from .. "-to-" .. to
-      obj:_change(changeName)
 
       if changeName == "from-running-to-meeting" then
         audioStatus = obj:getAudioStatus()
@@ -52,6 +51,7 @@ zoomState = machine.create({
       elseif changeName == "from-meeting-to-running" then
         audioStatus = 'off'
       end
+      obj:_change(changeName)
     end,
   }
 })
@@ -158,7 +158,8 @@ end
 --- Method
 --- Mutes the audio in Zoom, if Zoom is currently unmuted
 function obj:mute()
-  if audioStatus == 'unmuted' and self:_click({"Meeting", "Mute Audio"}) then
+  print(audioStatus)
+  if obj:getAudioStatus() == 'unmuted' and self:_click({"Meeting", "Mute Audio"}) then
     audioStatus = 'muted'
     self:_change("muted")
   end
@@ -168,7 +169,7 @@ end
 --- Method
 --- Unmutes the audio in Zoom, if Zoom is currently muted
 function obj:unmute()
-  if audioStatus == 'muted' and self:_click({"Meeting", "Unmute Audio"}) then
+  if obj:getAudioStatus() == 'muted' and self:_click({"Meeting", "Unmute Audio"}) then
     audioStatus = 'unmuted'
     self:_change("unmuted")
   end
