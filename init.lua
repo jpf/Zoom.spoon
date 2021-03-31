@@ -173,6 +173,7 @@ function _start_zoom_state_watcher(tempZoomObject)
         -- hs.uielement.watcher.windowResized, 
 
         -- a more aggressive state watcher will help keep the state & mute statuses accurate
+        -- but more aggressive seems to be harming performance, need to refine
         zoom_state_watcher:start({hs.uielement.watcher.applicationActivated,
                                   hs.uielement.watcher.applicationDeactivated, hs.uielement.watcher.applicationHidden,
                                   hs.uielement.watcher.applicationShown, hs.uielement.watcher.mainWindowChanged,
@@ -254,9 +255,14 @@ end
 
 -- Determines Zoom state by examining open windows & their titles
 -- Returns highest priority hs.window object for current Zoom state
-function _determineZoomState()
+function _determineZoomState(triggerChange)
     local app = _getZoomInstance()
     if (app ~= nil and Zoom_State ~= nil) then
+        -- https://stackoverflow.com/a/66003880/8677309
+        -- using this default nonsense until i can streamline the _change function
+        local defaultTrigger = true
+        triggerChange = triggerChange or (triggerChange == nil and defaultTrigger)
+
         local priorityWindow = nil
 
         local meetingWindow = app:findWindow(WINDOW_TITLES.MEETING)
@@ -290,7 +296,7 @@ function _determineZoomState()
             -- hs.printf('checking audio/video status')
             obj.audio:status()
             obj.video:status()
-            _change()
+            if (triggerChange) then _change() end -- this _change is slowing down my Zoom:focus() func
         else
             Zoom_State:stop()
         end
@@ -416,7 +422,7 @@ end
 -- Focuses on Zoom window, prioritising order: Meeting -> Sharing -> Webinar -> Main
 -- Returns the hs.window object on successful focus
 function obj:focus()
-    local window = _determineZoomState()
+    local window = _determineZoomState(false)
     if (window ~= nil) then
         return window:focus()
     end

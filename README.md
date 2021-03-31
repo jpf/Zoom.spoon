@@ -1,4 +1,4 @@
-#+TITLE: Documentation for the Unoffical Zoom Spoon
+#+TITLE: Documentation for the Expanded Zoom Spoon
 * What this Spoon does
 
 This is a [[https://www.hammerspoon.org/Spoons/][Spoon]] (or plugin) that makes it easier for Hammerspoon to interact with the Zoom videotelephony software.
@@ -6,14 +6,13 @@ This is a [[https://www.hammerspoon.org/Spoons/][Spoon]] (or plugin) that makes 
 If you aren't familiar with  [[https://www.hammerspoon.org/][Hammerspoon]] yet, it is a powerful programmable automation tool for macOS.
 
 Using this Spoon in concert with Hammerspoon, you can do things like:
-- Get notified when the Zoom app opens, starts a meeting, or starts screensharing
-- Get notified when the Zoom app closes, stops a meeting, or stops screensharing
-- Mute Zoom when it's open and in a meeting or screensharing
-- Unmute Zoom when it's open and in a meeting or screensharing
-
 - Mute & unmute Zoom Audio or Video, even if your meeting window is buried under other apps
-
-The original goal for this Spoon was to enable the author to create a "mute status light" for Zoom.
+- Easily track your Zoom Audio muted/unmuted status while in a meeting with a 🟢 or 🔴 indicator in the menubar of all monitors
+- The 🟢 & 🔴 icons can be clicked to toggle muted/unmuted state
+- Leave a meeting without having to search for the "Leave" button
+- Open the Chat window that is impossible to find when you are screen sharing
+- Bring the highest priority Zoom window to the forefront of all windows
+- Bind custom functionality to Zoom App States that trigger when: the app opens or closes, meetings start or end, when you start or stop screensharing, and more!
 
 * How to install this Spoon
 
@@ -31,48 +30,131 @@ The original goal for this Spoon was to enable the author to create a "mute stat
 
 Open your Hammerspoon configuration file and edit it to make use of this Spoon. Below is a sample configuration that does the following:
 
-- Creates a menu bar item that will display a red circle when a Zoom meeting is in progress and you are muted and a green circle if you are unmuted
-- Will toggle between mute and unmute if the red or green circle is clicked
-- Will assign the =F13= button to be a mute toggle button
+- Starts the Zoom Spoon
+- Creates a pop-up notification whenever Zoom App status changes
+- Adds the 🟢 or 🔴 icon in your menubar when in a meeting
+- Will toggle between mute and unmute if the 🟢 or 🔴 is clicked
+- Will assign the =F1= button to bring the priority Zoom window to the forefront of all windows
+- Will assign the =F2= button to toggle Zoom audio mute status
+- Will assign the =F3= button to toggle Zoom video on/off status
+- Will assign the =F4= button to leave a Zoom meeting even if the meeting window is buried
+- Will assign the =F5= button to open Zoom Chat
+- Will assign the =F6= button to Zoom Screen Share Controls
 
 #+BEGIN_SRC lua
--- This lets you click on the menu bar item to toggle the mute state
-zoomStatusMenuBarItem = hs.menubar.new(nil)
-zoomStatusMenuBarItem:setClickCallback(function()
-    spoon.Zoom:toggleMute()
-end)
+hs.loadSpoon('Zoom')
 
-updateZoomStatus = function(event)
-  hs.printf("updateZoomStatus(%s)", event)
-  if (event == "from-running-to-meeting") then
-    zoomStatusMenuBarItem:returnToMenuBar()
-  elseif (event == "muted") then
-    zoomStatusMenuBarItem:setTitle("🔴")
-  elseif (event == "unmuted") then
-    zoomStatusMenuBarItem:setTitle("🟢")
-  elseif (event == "from-meeting-to-running") or (event == "from-running-to-closed") then
-    zoomStatusMenuBarItem:removeFromMenuBar()
-  end
+updatedZoomStatus = function(currentState, audio, video)
+    hs.printf('Zoom App Status is now: %s', currentState)
+    hs.printf('Zoom Audio is: %s', audio)
+    hs.printf('Zoom Video is: %s', video)
+
+    if (audio == 'muted') then
+        hs.notify.new({
+            title = 'Zoom Audio',
+            informativeText = 'You are now muted'
+        }):send()
+    elseif (audio == 'unmuted') then
+        hs.notify.new({
+            title = 'Zoom Audio',
+            informativeText = 'People can hear you!'
+        }):send()
+    else
+        hs.notify.new({
+            title = 'Zoom Audio',
+            informativeText = 'Zoom has turned off your audio'
+        }):send()
+    end
 end
 
-hs.loadSpoon("Zoom")
-spoon.Zoom:setStatusCallback(updateZoomStatus)
+spoon.Zoom:setStatusCallback(updatedZoomStatus)
 spoon.Zoom:start()
 
--- Next up:
--- https://github.com/adamyonk/PushToTalk.spoon/blob/master/init.lua
-hs.hotkey.bind('', 'f13', function()
-  spoon.Zoom:toggleMute()
+hs.hotkey.bind('', 'f1', function()
+    spoon.Zoom:focus()
+end)
+hs.hotkey.bind('', 'f2', function()
+    spoon.Zoom.audio:toggleMute()
+end)
+hs.hotkey.bind('', 'f3', function()
+    spoon.Zoom.video:toggleMute()
+end)
+hs.hotkey.bind('', 'f4', function()
+    spoon.Zoom:leaveMeeting()
+end)
+hs.hotkey.bind('', 'f5', function()
+    spoon.Zoom.chat:open()
+end)
+hs.hotkey.bind('', 'f6', function()
+    spoon.Zoom.share:showControls()
 end)
 #+END_SRC
 
 These three lines are the most important:
 #+BEGIN_SRC lua
 hs.loadSpoon("Zoom")
-spoon.Zoom:setStatusCallback(updateZoomStatus)
+spoon.Zoom:setStatusCallback(updatedZoomStatus)
 spoon.Zoom:start()
 #+END_SRC
 
 The first line, =hs.loadSpoon("Zoom")=, loads this Spoon.
-The second line, uses the =spoon.Zoom:setStatusCallback()= method to have the =updateZoomStatus= function called when the state of the Zoom app changes.
+The second line, uses the =spoon.Zoom:setStatusCallback()= method to have the =updatedZoomStatus= function called when the state of the Zoom app changes.
 And finally, the last line, =spoon.Zoom:start()= starts up the Zoom spoon.
+
+* Full Zoom Spoon API
+
+#+BEGIN_SRC lua
+-- Zoom Spoon Controls
+obj:start()
+obj:stop()
+obj:inMeeting()
+obj:leaveMeeting()
+obj:focus()
+
+-- Zoom Audio Controls
+obj.audio:status()
+obj.audio:mute()
+obj.audio:unmute()
+obj.audio:toggleMute()
+
+-- Zoom Video Controls
+obj.video:status()
+obj.video:mute()
+obj.video:unmute()
+obj.video:toggleMute()
+
+-- Zoom Chat Window
+obj.chat:open()
+obj.chat:close()
+
+-- Zoom Participants
+obj.participants:open()
+obj.participants:close()
+
+-- Zoom Share Controls
+obj.share:stop()
+obj.share:showControls()
+
+-- Zoom App Event Function Callbacks
+-- Registers a function to be called whenever Zoom's state is changed or examined
+--     Parameters:
+--     func - A function in the form function(currentState, audioStatus, videoStatus)
+--         currentState = a string representing the current state of the Zoom State Machine
+--         audioStatus = a string representing the current Zoom Audio state
+--         videoStatus = a string representing the current Zoom Video state
+obj:setStatusCallback(func)
+-- Registers a function to be called whenever a Zoom state transition occurs
+--     Parameters:
+--     func - A function in the form function(stateTransition)
+--         stateTransition = a string representing the state transition in the form: 'from-running-to-meeting'
+obj:setTransitionCallback(func)
+#+END_SRC
+
+* Future Enhancements
+
+- Allow a user-defined mute/unmute icon instead of just built-in 🟢 & 🔴 icons
+- Add toggle status icon for video on/off
+- Improve audio mute toggle icon performance
+- Remove useless "Launch Zoom Meeting" tabs from Chrome that open whenever joining a meeting
+- Track logged in status of Zoom App
+- Track number of Participants in current meeting
