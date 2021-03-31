@@ -11,6 +11,8 @@ Using this Spoon in concert with Hammerspoon, you can do things like:
 - Mute Zoom when it's open and in a meeting or screensharing
 - Unmute Zoom when it's open and in a meeting or screensharing
 
+- Mute & unmute Zoom Audio or Video, even if your meeting window is buried under other apps
+
 The original goal for this Spoon was to enable the author to create a "mute status light" for Zoom.
 
 * How to install this Spoon

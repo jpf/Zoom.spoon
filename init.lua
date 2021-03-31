@@ -71,7 +71,7 @@ Zoom_State = machine.create({
     callbacks = {
         onstatechange = function(self, event, from, to)
             changeName = 'from-' .. from .. '-to-' .. to
-            hs.printf('internal state machine transition %s', changeName)
+            -- hs.printf('internal state machine transition %s', changeName)
             if (obj.transitionCallbackFunction ~= nil) then
                 obj.transitionCallbackFunction(changeName)
             end
@@ -148,22 +148,22 @@ zoom_state_watcher = nil
 -- Watches all application events
 --  & instantiates the zoom_state_watcher if Zoom was not open during hs config load
 app_watcher = hs.application.watcher.new(function(appName, eventType, appObject)
-    hs.printf('examining internal events %s', eventType)
+    -- hs.printf('examining internal events %s', eventType)
     if (appName == ZOOM_APP_NAME) then
         _start_zoom_state_watcher(appObject)
-        hs.printf('zoom state machine current %s', Zoom_State.current)
+        -- hs.printf('zoom state machine current %s', Zoom_State.current)
     end
 end)
 
 function _start_zoom_state_watcher(tempZoomObject)
-    hs.printf('zoom_state_watcher status %s', zoom_state_watcher)
+    -- hs.printf('zoom_state_watcher status %s', zoom_state_watcher)
     if (zoom_state_watcher == nil and tempZoomObject ~= nil) then
-        hs.printf('instantiating zoom_state_watcher')
+        -- hs.printf('instantiating zoom_state_watcher')
         ZOOM_APP_INSTANCE = tempZoomObject
 
         zoom_state_watcher = ZOOM_APP_INSTANCE:newWatcher(function(element, event, zoom_state_watcher, userData)
-            hs.printf('zoom state watcher events %s', event)
-            hs.printf('zoom state watcher element %s', element)
+            -- hs.printf('zoom state watcher events %s', event)
+            -- hs.printf('zoom state watcher element %s', element)
             _determineZoomState()
         end, {
             name = ZOOM_APP_NAME
@@ -230,7 +230,7 @@ function _buildIcon(targetInstance)
     local menuBarInstance = targetInstance or hs.menubar.new(nil)
 
     menuBarInstance:setClickCallback(function()
-        hs.printf('menu click')
+        -- hs.printf('menu click')
         obj.audio:toggleMute()
     end)
 
@@ -265,29 +265,29 @@ function _determineZoomState()
         local mainWindow = app:findWindow(WINDOW_TITLES.MAIN)
 
         if (meetingWindow ~= nil) then
-            hs.printf('set state to meeting')
+            -- hs.printf('set state to meeting')
             _handleImproperState()
             Zoom_State:startMeeting() -- this will not move from 'closed' to 'meeting' needs to go to 'running' first
             priorityWindow = meetingWindow
         elseif (sharingWindow ~= nil) then
-            hs.printf('set state to sharing')
+            -- hs.printf('set state to sharing')
             _handleImproperState()
             Zoom_State:startShare()
             priorityWindow = sharingWindow
         elseif (webinarWindow ~= nil) then
-            hs.printf('set state to webinar')
+            -- hs.printf('set state to webinar')
             _handleImproperState()
             Zoom_State:startMeeting()
             priorityWindow = webinarWindow
         elseif (mainWindow ~= nil) then
-            hs.printf('set state to running')
+            -- hs.printf('set state to running')
             _handleImproperState()
             Zoom_State:start()
             priorityWindow = app:findWindow(WINDOW_TITLES.MAIN)
         end
 
         if (priorityWindow ~= nil) then
-            hs.printf('checking audio/video status')
+            -- hs.printf('checking audio/video status')
             obj.audio:status()
             obj.video:status()
             _change()
@@ -313,7 +313,7 @@ end
 function _click(tbl)
     local app = _getZoomInstance()
     if (app ~= nil) then
-        hs.printf('clicking menu item')
+        -- hs.printf('clicking menu item')
         return app:selectMenuItem(tbl)
     end
 end
@@ -321,7 +321,7 @@ end
 -- Triggers the user-defined callback function
 function _change()
     if (obj.stateCallbackFunction ~= nil) then
-        hs.printf('triggering callback')
+        -- hs.printf('triggering callback')
         -- this pause is going to be very difficult to remove...
         _pause(0.5) -- it would be nice to not have to delay. this also slows down non-audio status updates
         obj.stateCallbackFunction(Zoom_State.current, obj.audio:status(), obj.video:status())
@@ -388,7 +388,7 @@ end
 --------------------------------------------------------
 ]]
 function obj:start()
-    hs.printf('starting app watcher in spoon')
+    -- hs.printf('starting app watcher in spoon')
     _start_zoom_state_watcher(_getZoomInstance())
     app_watcher:start()
     self.audio:setIcon()
@@ -407,7 +407,7 @@ function obj:leaveMeeting()
         local meetingWindow = app:findWindow(WINDOW_TITLES.MEETING)
 
         if (meetingWindow ~= nil) then
-            hs.printf('ending meeting')
+            -- hs.printf('ending meeting')
             meetingWindow:close() -- this opens leave/end submenu
             hs.eventtap.keyStroke({}, 'return') -- triggers end meeting option of submenu
         end
@@ -441,7 +441,7 @@ function obj.audio:toggleMute()
     return _toggleInputSetting(MENU_ITEMS.MEETING.MUTE_AUDIO, MENU_ITEMS.MEETING.UNMUTE_AUDIO, self.icon.menuBarItem,
                self.icon.mutedTitle, self.icon.unmutedTitle)
 end
-function obj.audio:setIcon()
+function obj.audio:setIcon() -- setIcon(userMenuBarItem)
     -- local targetMenuBarItem = userMenuBarItem or self.icon.menuBarItem
     self.icon = _buildIcon(self.icon.menuBarItem)
 end
@@ -471,19 +471,19 @@ end
 function obj.chat:close()
     return _click({MENU_ITEMS.VIEW.TOP, MENU_ITEMS.VIEW.CLOSE_CHAT})
 end
-function obj.chat:focus()
-    -- this needs either cleaned up or deleted...
-    local result = _click({MENU_ITEMS.VIEW.TOP, MENU_ITEMS.VIEW.SHOW_CHAT})
-    local app = _getZoomInstance()
-    if (app ~= nil) then
-        local chatWindow = app:findWindow(WINDOW_TITLES.CHAT)
-        if (chatWindow ~= nil) then
-            -- TODO: fucking zoom main window always steals focus...
-            return chatWindow:focus()
-        end
-    end
-    return result
-end
+-- function obj.chat:focus()
+--     -- this needs either cleaned up or deleted...
+--     local result = _click({MENU_ITEMS.VIEW.TOP, MENU_ITEMS.VIEW.SHOW_CHAT})
+--     local app = _getZoomInstance()
+--     if (app ~= nil) then
+--         local chatWindow = app:findWindow(WINDOW_TITLES.CHAT)
+--         if (chatWindow ~= nil) then
+--             -- TODO: fucking zoom main window always steals focus...
+--             return chatWindow:focus()
+--         end
+--     end
+--     return result
+-- end
 
 -------------------
 -- spoon.Zoom.participants
@@ -495,19 +495,19 @@ end
 function obj.participants:close()
     return _click({MENU_ITEMS.VIEW.TOP, MENU_ITEMS.VIEW.CLOSE_PARTICIPANTS})
 end
-function obj.participants:focus()
-    -- this needs either cleaned up or deleted...
-    local result = _click({MENU_ITEMS.VIEW.TOP, MENU_ITEMS.VIEW.SHOW_PARTICIPANTS})
-    local app = _getZoomInstance()
-    if (app ~= nil) then
-        local participantsWindow = app:findWindow(WINDOW_TITLES.PARTICIPANTS)
-        if (participantsWindow ~= nil) then
-            -- TODO: fucking zoom main window always steals focus...
-            return participantsWindow:focus()
-        end
-    end
-    return result
-end
+-- function obj.participants:focus()
+--     -- this needs either cleaned up or deleted...
+--     local result = _click({MENU_ITEMS.VIEW.TOP, MENU_ITEMS.VIEW.SHOW_PARTICIPANTS})
+--     local app = _getZoomInstance()
+--     if (app ~= nil) then
+--         local participantsWindow = app:findWindow(WINDOW_TITLES.PARTICIPANTS)
+--         if (participantsWindow ~= nil) then
+--             -- TODO: fucking zoom main window always steals focus...
+--             return participantsWindow:focus()
+--         end
+--     end
+--     return result
+-- end
 
 -------------------
 -- spoon.Zoom.share
@@ -533,7 +533,7 @@ end
 --         videoStatus = a string representing the current Zoom Video state
 ---------------------------------------------------------------------------------------------
 function obj:setStatusCallback(func)
-    hs.printf('setting zoom state callback')
+    -- hs.printf('setting zoom state callback')
     self.stateCallbackFunction = func
 end
 ---------------------------------------------------------------------------------------------
@@ -543,7 +543,7 @@ end
 --         stateTransition = a string representing the state transition in the form: 'from-running-to-meeting'
 ---------------------------------------------------------------------------------------------
 function obj:setTransitionCallback(func)
-    hs.printf('setting zoom transition callback')
+    -- hs.printf('setting zoom transition callback')
     self.transitionCallbackFunction = func
 end
 
