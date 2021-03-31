@@ -92,12 +92,12 @@ end)
 
 These three lines are the most important:
 #+BEGIN_SRC lua
-hs.loadSpoon("Zoom")
+hs.loadSpoon('Zoom')
 spoon.Zoom:setStatusCallback(updatedZoomStatus)
 spoon.Zoom:start()
 #+END_SRC
 
-The first line, =hs.loadSpoon("Zoom")=, loads this Spoon.
+The first line, =hs.loadSpoon('Zoom')=, loads this Spoon.
 The second line, uses the =spoon.Zoom:setStatusCallback()= method to have the =updatedZoomStatus= function called when the state of the Zoom app changes.
 And finally, the last line, =spoon.Zoom:start()= starts up the Zoom spoon.
 
@@ -105,35 +105,35 @@ And finally, the last line, =spoon.Zoom:start()= starts up the Zoom spoon.
 
 #+BEGIN_SRC lua
 -- Zoom Spoon Controls
-obj:start()
-obj:stop()
-obj:inMeeting()
-obj:leaveMeeting()
-obj:focus()
+spoon.Zoom:start()
+spoon.Zoom:stop()
+spoon.Zoom:inMeeting()
+spoon.Zoom:leaveMeeting()
+spoon.Zoom:focus()
 
 -- Zoom Audio Controls
-obj.audio:status()
-obj.audio:mute()
-obj.audio:unmute()
-obj.audio:toggleMute()
+spoon.Zoom.audio:status()
+spoon.Zoom.audio:mute()
+spoon.Zoom.audio:unmute()
+spoon.Zoom.audio:toggleMute()
 
 -- Zoom Video Controls
-obj.video:status()
-obj.video:mute()
-obj.video:unmute()
-obj.video:toggleMute()
+spoon.Zoom.video:status()
+spoon.Zoom.video:mute()
+spoon.Zoom.video:unmute()
+spoon.Zoom.video:toggleMute()
 
 -- Zoom Chat Window
-obj.chat:open()
-obj.chat:close()
+spoon.Zoom.chat:open()
+spoon.Zoom.chat:close()
 
 -- Zoom Participants
-obj.participants:open()
-obj.participants:close()
+spoon.Zoom.participants:open()
+spoon.Zoom.participants:close()
 
 -- Zoom Share Controls
-obj.share:stop()
-obj.share:showControls()
+spoon.Zoom.share:stop()
+spoon.Zoom.share:showControls()
 
 -- Zoom App Event Function Callbacks
 -- Registers a function to be called whenever Zoom's state is changed or examined
@@ -142,12 +142,12 @@ obj.share:showControls()
 --         currentState = a string representing the current state of the Zoom State Machine
 --         audioStatus = a string representing the current Zoom Audio state
 --         videoStatus = a string representing the current Zoom Video state
-obj:setStatusCallback(func)
+spoon.Zoom:setStatusCallback(func)
 -- Registers a function to be called whenever a Zoom state transition occurs
 --     Parameters:
 --     func - A function in the form function(stateTransition)
 --         stateTransition = a string representing the state transition in the form: 'from-running-to-meeting'
-obj:setTransitionCallback(func)
+spoon.Zoom:setTransitionCallback(func)
 #+END_SRC
 
 * Future Enhancements
