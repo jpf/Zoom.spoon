@@ -2,7 +2,6 @@
 
  Known issues:
  * Mute is not detected properly during a Zoom Webinar
- * toggleMute() will stop working if the user changes state via the Zoom client
 
 ]]
 
@@ -31,6 +30,8 @@ local machine = dofile(hs.spoons.resourcePath("statemachine.lua"))
 watcher = nil
 
 audioStatus = 'off'
+videoStatus = 'off'
+
 zoomState = machine.create({
   initial = 'closed',
   events = {
@@ -47,9 +48,12 @@ zoomState = machine.create({
 
       if changeName == "from-running-to-meeting" then
         audioStatus = obj:getAudioStatus()
+        videoStatus = obj:getVideoStatus()
         obj:_change(audioStatus)
+        obj:_change(videoStatus)
       elseif changeName == "from-meeting-to-running" then
         audioStatus = 'off'
+        videoStatus = 'off'
       end
       obj:_change(changeName)
     end,
@@ -139,16 +143,47 @@ function obj:getAudioStatus()
   end
 end
 
+function obj:getVideoStatus()
+  if _check({"Meeting", "Start Video"}) then
+    return 'videoStopped'
+  elseif _check({"Meeting", "Stop Video"}) then
+    return 'videoStarted'
+  else
+    return 'off'
+  end
+end
+
 --- Zoom:toggleMute()
 --- Method
 --- Toggles between the 'muted' and 'unmuted states'
 function obj:toggleMute()
-  -- FIXME: Check if reported status differs from expected status, then fix
+  if audioStatus ~= obj:getAudioStatus() then
+    audioStatus = obj:getAudioStatus()
+    self:_change(audioStatus)
+  end
   if audioStatus == 'muted' then
     self:unmute()
   end
   if audioStatus == 'unmuted' then
     self:mute()
+  else
+    return nil
+  end
+end
+
+--- Zoom:toggleVideo()
+--- Method
+--- Toggles between the 'videoStarted' and 'videoStopped states'
+function obj:toggleVideo()
+  if videoStatus ~= obj:getVideoStatus() then
+    videoStatus = obj:getVideoStatus()
+    self:_change(videoStatus)
+  end
+  if videoStatus == 'videoStopped' then
+    self:startVideo()
+  end
+  if videoStatus == 'videoStarted' then
+    self:stopVideo()
   else
     return nil
   end
@@ -171,6 +206,26 @@ function obj:unmute()
   if obj:getAudioStatus() == 'muted' and self:_click({"Meeting", "Unmute Audio"}) then
     audioStatus = 'unmuted'
     self:_change("unmuted")
+  end
+end
+
+--- Zoom:stopVideo()
+--- Method
+--- Stops the video in Zoom, if Zoom is currently streaming video
+function obj:stopVideo()
+  if obj:getVideoStatus() == 'videoStarted' and self:_click({"Meeting", "Stop Video"}) then
+    videoStatus = 'videoStopped'
+    self:_change("videoStopped")
+  end
+end
+
+--- Zoom:startVideo()
+--- Method
+--- Starts the video in Zoom, if Zoom is currently not streaming video
+function obj:startVideo()
+  if obj:getVideoStatus() == 'videoStopped' and self:_click({"Meeting", "Start Video"}) then
+    videoStatus = 'videoStarted'
+    self:_change("videoStarted")
   end
 end
 
