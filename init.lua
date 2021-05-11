@@ -68,7 +68,7 @@ local endMeetingDebouncer = hs.timer.delayed.new(0.2, function()
 end)
 
 appWatcher = hs.application.watcher.new(function (appName, eventType, appObject)
-  if (eventType == hs.application.watcher.launched) then
+  if (appName == "zoom.us" and eventType == hs.application.watcher.launched) then
     zoomState:start()
 
     watcher = appObject:newWatcher(function (element, event, watcher, userData)
