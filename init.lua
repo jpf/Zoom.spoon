@@ -16,6 +16,7 @@ obj.license = "MIT"
 obj.homepage = "https://github.com/jpf/Zoom.spoon"
 
 obj.callbackFunction = nil
+obj.pollingInterval = nil
 
 function unpack (t, i)
   i = i or 1
@@ -28,6 +29,7 @@ end
 local machine = dofile(hs.spoons.resourcePath("statemachine.lua"))
 
 watcher = nil
+timer = nil
 
 audioStatus = 'off'
 videoStatus = 'off'
@@ -67,6 +69,26 @@ local endMeetingDebouncer = hs.timer.delayed.new(0.2, function()
   end
 end)
 
+local stopTimer = function()
+  if (timer ~= nil) then
+    timer:stop()
+    timer = nil
+  end
+end
+
+local timerCallback = function()
+  -- keep current state
+  local currentAudioStatus = audioStatus
+  local currentVideoStatus = videoStatus
+  -- and refresh state from Zoom
+  audioStatus = obj:getAudioStatus()
+  videoStatus = obj:getVideoStatus()
+
+  -- if either audio or video state has changed, trigger callback
+  if currentAudioStatus ~= audioStatus then obj:_change(audioStatus) end
+  if currentVideoStatus ~= videoStatus then obj:_change(videoStatus) end
+end
+
 appWatcher = hs.application.watcher.new(function (appName, eventType, appObject)
   if (appName == "zoom.us" and eventType == hs.application.watcher.launched) then
     zoomState:start()
@@ -95,6 +117,13 @@ appWatcher = hs.application.watcher.new(function (appName, eventType, appObject)
       end
     end, { name = "zoom.us" })
     watcher:start({hs.uielement.watcher.windowCreated, hs.uielement.watcher.titleChanged, hs.uielement.watcher.elementDestroyed})
+
+    if obj.pollingInterval ~= nil then
+      stopTimer()
+      timer = hs.timer.new(obj.pollingInterval, timerCallback, true)
+      timer:start()
+    end
+
   elseif (eventType == hs.application.watcher.terminated) then
     if (watcher ~= nil) then
       watcher:stop()
@@ -102,6 +131,7 @@ appWatcher = hs.application.watcher.new(function (appName, eventType, appObject)
       zoomState:stop()
       watcher = nil
     end
+    stopTimer()
   end
 end)
 
@@ -111,6 +141,7 @@ end
 
 function obj:stop()
   appWatcher:stop()
+  stopTimer()
 end
 
 function _check(tbl)
@@ -242,6 +273,16 @@ end
 --- * func - A function in the form "function(event)" where "event" is a string describing the state change event
 function obj:setStatusCallback(func)
   self.callbackFunction = func
+end
+
+--- Zoom:pollStatus(interval)
+--- Method
+--- Enables a polling timer checking for mute/video status
+---
+--- Parameters:
+--- * interval - Polling interval in seconds
+function obj:pollStatus(interval)
+  self.pollingInterval = interval
 end
 
 return obj
