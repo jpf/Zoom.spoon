@@ -64,7 +64,7 @@ zoomState = machine.create({
 
 local endMeetingDebouncer = hs.timer.delayed.new(0.2, function()
   -- Only end the meeting if the "Meeting" menu is no longer present
-  if not _check({"Meeting", "Invite"}) then
+  if not _check({"Meeting", "Invite..."}) then
     zoomState:endMeeting()
   end
 end)
