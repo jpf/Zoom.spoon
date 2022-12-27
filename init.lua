@@ -89,40 +89,44 @@ local timerCallback = function()
   if currentVideoStatus ~= videoStatus then obj:_change(videoStatus) end
 end
 
+local zoomLaunched = function(app)
+  zoomState:start()
+
+  watcher = app:newWatcher(function (element, event, watcher, userData)
+    local eventName = tostring(event)
+    local windowTitle = ""
+    if element['title'] ~= nil then
+      windowTitle = element:title()
+    end
+
+    if(eventName == "AXTitleChanged" and windowTitle == "Zoom Meeting") then
+      zoomState:startMeeting()
+    elseif(eventName == "AXTitleChanged" and windowTitle == "Zoom Webinar") then
+      zoomState:startMeeting()
+    elseif(eventName == "AXWindowCreated" and windowTitle == "Zoom Meeting") then
+      zoomState:endShare()
+    elseif(eventName == "AXWindowCreated" and windowTitle == "Zoom Webinar") then
+      zoomState:startMeeting()
+    elseif(eventName == "AXWindowCreated" and windowTitle == "Zoom") then
+      zoomState:start()
+    elseif(eventName == "AXWindowCreated" and windowTitle:sub(1, #"zoom share") == "zoom share") then
+      zoomState:startShare()
+    elseif(eventName == "AXUIElementDestroyed") then
+      endMeetingDebouncer:start()
+    end
+  end, { name = "zoom.us" })
+  watcher:start({hs.uielement.watcher.windowCreated, hs.uielement.watcher.titleChanged, hs.uielement.watcher.elementDestroyed})
+
+  if obj.pollingInterval ~= nil then
+    stopTimer()
+    timer = hs.timer.new(obj.pollingInterval, timerCallback, true)
+    timer:start()
+  end
+end
+
 appWatcher = hs.application.watcher.new(function (appName, eventType, appObject)
   if (appName == "zoom.us" and eventType == hs.application.watcher.launched) then
-    zoomState:start()
-
-    watcher = appObject:newWatcher(function (element, event, watcher, userData)
-      local eventName = tostring(event)
-      local windowTitle = ""
-      if element['title'] ~= nil then
-        windowTitle = element:title()
-      end
-
-      if(eventName == "AXTitleChanged" and windowTitle == "Zoom Meeting") then
-        zoomState:startMeeting()
-      elseif(eventName == "AXTitleChanged" and windowTitle == "Zoom Webinar") then
-        zoomState:startMeeting()
-      elseif(eventName == "AXWindowCreated" and windowTitle == "Zoom Meeting") then
-        zoomState:endShare()
-      elseif(eventName == "AXWindowCreated" and windowTitle == "Zoom Webinar") then
-        zoomState:startMeeting()
-      elseif(eventName == "AXWindowCreated" and windowTitle == "Zoom") then
-        zoomState:start()
-      elseif(eventName == "AXWindowCreated" and windowTitle:sub(1, #"zoom share") == "zoom share") then
-        zoomState:startShare()
-      elseif(eventName == "AXUIElementDestroyed") then
-        endMeetingDebouncer:start()
-      end
-    end, { name = "zoom.us" })
-    watcher:start({hs.uielement.watcher.windowCreated, hs.uielement.watcher.titleChanged, hs.uielement.watcher.elementDestroyed})
-
-    if obj.pollingInterval ~= nil then
-      stopTimer()
-      timer = hs.timer.new(obj.pollingInterval, timerCallback, true)
-      timer:start()
-    end
+    zoomLaunched(appObject)
 
   elseif (eventType == hs.application.watcher.terminated) then
     if (watcher ~= nil) then
@@ -137,6 +141,14 @@ end)
 
 function obj:start()
   appWatcher:start()
+  -- check if Zoom is already running when the spoon starts up
+  -- if it is, then the watcher will never receive the "launched" event
+  -- so we send it manually to ensure its internal watch on the zoom UI
+  -- is setup correctly
+  app = hs.application.find("zoom.us")
+  if (app ~= nil) then
+    zoomLaunched(app)
+  end
 end
 
 function obj:stop()
