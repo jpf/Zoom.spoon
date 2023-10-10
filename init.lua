@@ -156,6 +156,13 @@ function obj:stop()
   stopTimer()
 end
 
+function obj:kill()
+  app = hs.application.find("zoom.us")
+  if (app ~= nil) then
+    app:kill()
+  end
+end
+
 function _check(tbl)
   local check = hs.application.get("zoom.us")
   if (check ~= nil) then
